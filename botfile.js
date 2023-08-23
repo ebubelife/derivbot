@@ -299,7 +299,7 @@ return percentage;
 
 
 // Replace 'YOUR_BOT_TOKEN' with your actual Telegram bot token
-const bot = new TelegramBot('6196228459:AAFveMlvk1tCMMhukKA5a3RsxjCtG1DgTtg', { polling: true });
+const bot = new TelegramBot('TELEGRAM_TOKEN', { polling: true });
 
 // Middleware to parse incoming JSON requests
 app.use(express.json());
