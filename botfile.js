@@ -1,105 +1,304 @@
-const WebSocket = require('ws');
-const DerivAPI = require('@deriv/deriv-api/dist/DerivAPI');
-const { find }   = require('rxjs/operators');
 
+
+const DerivAPI = require('@deriv/deriv-api/dist/DerivAPI.js');
+const WebSocket = require('ws');
 const express = require('express');
 const TelegramBot = require('node-telegram-bot-api');
 
 const app = express();
 const port = 3001;
+var percentage = 0;
+//const connection = new WebSocket('wss://ws.binaryws.com/websockets/v3?app_id=36528');
+//const api = new DerivAPI({ connection });
+//const token ="vvij6IVp07tvcUW"; app_id = "36956 ";
+
+//const token = "vvij6IVp07tvcUW";
 
 
-// app_id 1089 is for testing, create your own app_id and use it here.
-// go to api.deriv.com to register your own app.
-const connection = new WebSocket('wss://ws.binaryws.com/websockets/v3?app_id=36956');
-const api        = new DerivAPI({ connection });
-const basic = api.basic;
-const expected_payout = process.env.EXPECTED_PAYOUT || 19;
 
-const token = "VoHhgwYIcMFWr90";
+//const connectionTwo = new WebSocket('wss://ws.binaryws.com/websockets/v3?app_id=36956');
+//const apiTwo = new DerivAPI({ connectionTwo });
 
-//basic.ping().then(console.log);
+//const tokenTwo = "7a4Og6k7qAr1QFo";
 
-if (!token) {
-    console.error('DERIV_TOKEN environment variable is not set');
-    process.exit(1);
+//main derive functions
+
+
+async function checkBalance(){
+var connection = new WebSocket('wss://ws.binaryws.com/websockets/v3?app_id=36528');
+var api = new DerivAPI({ connection });
+//const token ="vvij6IVp07tvcUW"; app_id = "36956 ";
+
+var token = "vvij6IVp07tvcUW";
+
+
+ try {
+    const account = await api.account(token);
+const balance = account.balance;
+//    const formatted_balance = balance.format;
+  //  console.log('Balance:', formatted_balance);
+
+    return JSON.stringify(balance._data.amount);
+  } catch (error) {
+    console.error('Error: ' + JSON.stringify(error));
+    
+   return  'Error: ' + JSON.stringify(error);
+
+  }
+}
+
+
+//Get percentage
+async function buyContract(contractType, selectedSymbol, selectedDuration, selectedAmount, selectedCurrency, selectedBasis, selectedDurationUnit){
+  var connection = new WebSocket('wss://ws.binaryws.com/websockets/v3?app_id=36528');
+  var api = new DerivAPI({ connection });
+  var token = "vvij6IVp07tvcUW";
+
+
+  try {
+    const basic = api.basic;
+
+    await basic.ping();
+
+    const ticks = await api.ticks(selectedSymbol);
+
+    const account = await api.account(token);
+    const balance = account.balance;
+    const formatted_balance = balance.format;
+
+
+/*    const contract = await api.contract({
+      contract_type: contractType,
+      symbol: selectedSymbol,
+      duration: selectedDuration,
+      duration_unit: selectedDurationUnit,
+      currency: selectedCurrency,
+      amount: selectedAmount,
+      basis: selectedBasis,
+      //...contract_options
+    });
+
+
+  const buy = await contract.buy();*/
+
+  
+const proposal = {
+  proposal: 1,
+  amount: selectedAmount,
+  basis: selectedBasis,
+  contract_type: contractType,
+  currency: selectedCurrency,
+  duration: selectedDuration,
+  duration_unit: selectedDurationUnit,
+  symbol: selectedSymbol,
+};
+
+  const getProposal = await api.contract(proposal);
+
+  //return getProposal._data.payout._data.value;
+  return new Promise((resolve, reject) => {
+     /* contract.onUpdate().subscribe(contract => {
+        if (contract.is_sold) {
+ console.log(contract);
+          resolve("-");
+        } else {
+          resolve("Error");
+        }
+ resolve (contract.profit._data.percentage);
+
+
+      });*/
+ 
+
+        resolve( getProposal._data.payout._data.value);
+    });
+  } catch (error) {
+    console.error('Error: ' + JSON.stringify(error));
+    return "Error: " + JSON.stringify(error);
+  }
 }
 
 
 
-async function buyContract(contractType, selectedSymbol, selectedDuration, selectedAmount,selectedCurrency, selectedBasis, selectedDurationUnit) {
-    try {
-        const account = await api.account(token);
 
-        const { balance, currency } = account;
+/*/get percentage profit
 
-        console.log(`Your current balance is: ${balance.currency} ${balance.display}`);
+async function buyContractMain(contractType, selectedSymbol, selectedDuration, selectedAmount,selectedCurrency, selectedBasis, selectedDurationUnit){
 
-        balance.onUpdate(() => {
-            console.log(`Your new balance is: ${balance.currency} ${balance.display}`);
-        });
+var connection = new WebSocket('wss://ws.binaryws.com/websockets/v3?app_id=36528');
+var api = new DerivAPI({ connection });
+//const token ="vvij6IVp07tvcUW"; app_id = "36956 ";
 
-        //first of all get proposal
+var token = "vvij6IVp07tvcUW";
 
 
-      
+const contract = {
+    // Specify the contract details
+   
+    price: selectedPrice
+  };
 
-        const contract = await api.contract({
-            contract_type: 'CALL',
-            currency:"USD",
-            amount       : 50,
-            duration     : 5,
-            duration_unit: 't',
-            symbol       : 'R_100',
-            basis        : 'stake',
-        });
+  try {
+   /*const basic = api.basic;
 
-      //  var buy = await contract.buy();
+basic.ping().then(console.log);
 
-        
+//get ticks object
+const ticks = await api.ticks(selectedSymbol);
+//ticks.onUpdate().subscribe(console.log);
 
-      //  return (console.log())
+//console.log(ticks);
+*/
+//get account information 
 
-     contract.onUpdate(({ status, payout, bid_price }) => {
-            switch (status) {
-                case 'proposal':
-                    return console.log(
-                        `Current payout: ${payout.currency} ${payout.display}`,
-                    );
-                case 'open':
-                    return console.log(
-                        `Current bid price: ${bid_price.currency} ${bid_price.display}`,
-                    );
-                default:
-                    break;
-            }
-        });
+/*const account = await api.account(token);
 
-        // Wait until payout is greater than USD 19
-        await contract.onUpdate()
-            .pipe(find(({ payout }) => payout.value >= expected_payout)).toPromise();
+const balance = account.balance;
 
-        var buy = await contract.buy();
+const formatted_balance = balance.format;
 
-        console.log(`Buy price is: ${buy.price.currency} ${buy.price.display}`);
-
-        // Wait until the contract is sold
-        await contract.onUpdate().pipe(find(({ is_sold }) => is_sold)).toPromise();
-
-        const { profit, status } = contract;
-
-      // console.log(`You ${status}: ${profit.currency} ${profit.display}`);
-
-       return 'Contract has been bought';
-    } catch (err) {
-        console.error(err);
-    } finally {
-        // Close the connection and exit
-        api.basic.disconnect();
-    }
+console.log(account);
 
 
+
+const contract = await api.contract({
+contract_type: contractType,
+  symbol:selectedSymbol,
+  duration:selectedDuration,
+  duration_unit: 'm',
+  currency:selectedCurrency,
+  amount:selectedAmount, 
+  basis: selectedBasis,
+  //...contract_options
+});
+
+const buy = await contract.buy();
+
+contract.onUpdate().subscribe(contract => {
+  if (contract.is_sold) {
+     // sell_pop_up.set(contract);
+
+    console.log(contract);
+    //percentage = 50;
+     return "-";
+
+ }else{
+return "Error";
 }
+
+ percentage = 50;
+
+return percentage;
+});
+
+//contract.onUpdate().subscribe(console.log);
+
+//console.log(buy);
+
+//return true;
+
+} catch (error) {
+    // Handle any errors that occur
+   console.error('Error:  ' +JSON.stringify(error));
+return "Error:"  + JSON.stringify(error);
+  }
+}
+*/
+
+
+
+
+async function test(){
+
+return "test";
+}
+
+async function buyContractMain(contractType, selectedSymbol, selectedDuration, selectedAmount, selectedCurrency, selectedBasis, selectedDurationUnit){
+  var connection = new WebSocket('wss://ws.binaryws.com/websockets/v3?app_id=37356');
+  var api = new DerivAPI({ connection });
+  var token = "VoHhgwYIcMFWr90";
+//var token ="vvij6IVp07tvcUW";
+
+  /*const contract = {
+    // Specify the contract details
+    price: selectedPrice
+  };*/
+
+  try {
+    var contract = await api.contract({
+        contract_type: contractType,
+        symbol: selectedSymbol,
+        duration: selectedDuration,
+        duration_unit: selectedDurationUnit,
+        currency: selectedCurrency,
+        amount: selectedAmount,
+        basis: selectedBasis,
+        //...contract_options
+      });
+  
+
+var buy = await contract.buy();
+
+contract.onUpdate().subscribe(contract => {
+  if (contract.is_sold) {
+     // sell_pop_up.set(contract);
+
+    console.log(contract);
+    //percentage = 50;
+     return "-";
+
+ }else{
+return "Error";
+}
+
+ percentage = 50;
+
+return percentage;
+});
+
+//contract.onUpdate().subscribe(console.log);
+
+//console.log(buy);
+
+ await basic.ping();
+
+    const ticks = await api.ticks(selectedSymbol);
+
+    const account = await api.account(token);
+    const balance = account.balance;
+    const formatted_balance = balance.format;
+
+    const contract = await api.contract({
+      contract_type: contractType,
+      symbol: selectedSymbol,
+      duration: selectedDuration,
+      duration_unit: selectedDurationUnit,
+      currency: selectedCurrency,
+      amount: selectedAmount,
+      basis: selectedBasis,
+      //...contract_options
+    });
+
+    const buy = await contract.buy();
+
+    return new Promise((resolve, reject) => {
+      contract.onUpdate().subscribe(contract => {
+        if (contract.is_sold) {
+          console.log(contract);
+      //    resolve("-");
+        } else {
+        //  resolve("Error");
+        }
+                 resolve(contract.profit._data.percentage);
+  });
+  //      resolve("Contract placed successfully  "+JSON.stringify(contract.profit._data.percentage));
+    });
+  } catch (error) {
+    console.error('Error: ' + JSON.stringify(error));
+    return "Error: " + JSON.stringify(error);
+  }
+}
+
 
 
 // Replace 'YOUR_BOT_TOKEN' with your actual Telegram bot token
@@ -130,36 +329,107 @@ if (match && match[1]) {
   // Split the text by commas
   const values = match[1].split(',').map(value => value.trim().replace(/"/g, ''));
 
+//  console.log(values); // Output the extracted values
+buyContract(values[0],values[1],values[2],values[4], values[3],values[5], values[6] ).then(result => {
+    console.log(result); // Output: "successfully received signal"
+    
+// response = "Retrieved percentage: "+result;
+var share  = result;
 
-  //buy contract
-  buyContract(values[0],values[1],values[2],values[4], values[3],values[5], values[6] ).then(result => {
+if(share > 70){
+buyContractMain(values[0],values[1],values[2],values[4], values[3],values[5], values[6] ).then(result => {
 
-       
-            response = result
+    
+    response = "Successful! Payout = "+share;
+  
 
-            bot.sendMessage(chatId, response)
-            .then(() => {
-                console.log('Response sent:', response);
-            })
-            .catch((error) => {
-                console.error('Error sending response:', error);
-            });
+  bot.sendMessage(chatId, response)
+      .then(() => {
+        console.log('Response sent:', response);
+      })
+      .catch((error) => {
+        console.error('Error sending response:', error);
+      });
 
-  }).catch((error) => {
-    console.error('Error sending response:', error);
+
+}) .catch((error) => {
+        console.error('Error sending response:', error);
+      });
+}else{
+
+response = "Could not buy/sell contract. \n Percentage share is lower than 70. \n Percentage share =  ["+share+"]";
+
+}
+//      response = "Contract Placed :  "+result;
+
+// Send the response back to the user
+    bot.sendMessage(chatId, response)
+      .then(() => {
+        console.log('Response sent:', response);
+      })
+      .catch((error) => {
+        console.error('Error sending response:', error);
+      });
+
   });
 
 
+
+
+}else{
+   response = 'an error occurred';
+
+
+
+    // Send the response back to the user
+    bot.sendMessage(chatId, response)
+      .then(() => {
+        console.log('Response sent:', response);
+      }).catch((error) => {
+        console.error('Error sending response:', error);
+      });
+
 }
 
-  }
 
+  }else if(messageText.toLowerCase().includes('balance')){
+
+     checkBalance().then(result => {
+    console.log(result); // Output: "successfully received signal"
+
+      response = "Balance  retrieved  successfully:   "+result;
+
+    // Send the response back to the user
+    bot.sendMessage(chatId, response)
+      .then(() => {
+        console.log('Response sent:', response);
+      })
+      .catch((error) => {
+        console.error('Error sending response:', error);
+      });
+  });
+
+}
+
+else if(messageText.toLowerCase().includes('hi') || messageText.toLowerCase().includes('hello') ){
+
+
+    const response = 'Hi, I am the official trading bot for this channel. I can help you purchase a contract';
+
+    // Send the response back to the user
+    bot.sendMessage(chatId, response)
+      .then(() => {
+        console.log('Response sent:', response);
+      })
+      .catch((error) => {
+        console.error('Error sending response:', error);
+      });
+  
+}
 });
 
 // Start the server
 app.listen(port, () => {
-    console.log(`Server listening on port ${port}`);
-  });
-
-
+  console.log(`Server listening on port ${port}`);
+});
 
